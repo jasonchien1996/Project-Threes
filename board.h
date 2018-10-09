@@ -3,8 +3,6 @@
 #include <iostream>
 #include <iomanip>
 
-
-
 /**
  * array-based board for 2048
  *
@@ -51,13 +49,14 @@ public:
 
 	int get_direct()const{return direct;}
 	void set_direct(){direct = -1;}
+
 	/**
 	 * place a tile (index value) to the specific position (1-d form index)
 	 * return 0 if the action is valid, or -1 if not
 	 */
 	reward place(unsigned pos, cell tile) {
 		if (pos >= 16) return -1;
-		if (tile != 1 && tile != 2) return -1;
+		if (tile != 1 && tile != 2 && tile != 3) return -1;
 		operator()(pos) = tile;
 		return 0;
 	}
@@ -67,6 +66,15 @@ public:
 	 * return the reward of the action, or -1 if the action is illegal
 	 */
 	reward slide(unsigned opcode) {
+	    /*for(int i=0;i<4;i++)
+        {
+            for(int j=0;j<4;j++)
+            {
+                std::cout<<tile[i][j]<<' ';
+            }
+            std::cout<<std::endl;
+        }*/
+        //std::cout<<std::endl;
 		switch (opcode & 0b11) {
 		case 0: return slide_up();
 		case 1: return slide_right();
@@ -83,69 +91,46 @@ public:
 		for (int r = 0; r < 4; r++)
         {
 			auto& row = tile[r];
-			int top = 0, hold = 0, blank = 0;
+			int hold = 0, blank = 0;
 			for (int c = 0; c < 4; c++)
             {
 				int tile = row[c];
-				if (tile == 0)
-                {
-                    blank = 1;
-                    hold = 0;
-                    continue;
-				}
-				row[c] = 0;
-				if (blank == 0)
-                {
-					if (hold == tile)
-                    {
-                        if ((hold + tile) > 5)
-                        {
-                            row[top++] = ++tile;
-                            score = (1 << tile);
-                            hold = 0;
-                            blank = 1;
-                        }
-                        else
-                        {
-                            row[top++] == hold;
-                            hold == tile;
-                        }
-
-                    }
-					else
-                    {
-                        if (abs((hold - tile)) == 1 && (hold + tile) == 3)
-                        {
-                            row[top++] == 3;
-                            score += (1 << tile);
-                            hold = 0;
-                            blank = 1;
-                        }
-                        else
-                        {
-                            row[top++] = hold;
-                            hold = tile;
-                        }
-                    }
-                }
+				if (tile == 0){blank = 1;}
                 else
                 {
-					row[top++] = tile;
-					hold = 0;
-					blank = 1;
-				}
+                    if (hold == tile && hold > 2)
+                    {
+                        row[c-1] = ++tile;
+                        score = (1 << tile);
+                        blank = 1;
+                    }
+					else if (abs((hold - tile)) == 1 && (hold + tile) == 3)
+                    {
+                        row[c-1] = 3;
+                        score += (1 << tile);
+                        blank = 1;
+                    }
+                    else
+                        hold = tile;
+                }
+                if(blank == 1)
+                {
+                    for(int i = c; i < 3; i++)
+                        row[i] = row[i+1];
+                    row[3] = 0;
+                    break;
+                }
 			}
-			if (hold) tile[r][top] = hold;
 		}
 		direct = 3;
 		return (*this != prev) ? score : -1;
 	}
-
 	reward slide_right() {
 		reflect_horizontal();
 		reward score = slide_left();
 		reflect_horizontal();
 		direct = 1;
+		//std::cout<<'r'<<std::endl;
 		return score;
 	}
 	reward slide_up() {
@@ -153,6 +138,7 @@ public:
 		reward score = slide_right();
 		rotate_left();
 		direct = 0;
+		//std::cout<<'u'<<std::endl;
 		return score;
 	}
 	reward slide_down() {
@@ -160,6 +146,7 @@ public:
 		reward score = slide_left();
 		rotate_left();
 		direct = 2;
+		//std::cout<<'d'<<std::endl;
 		return score;
 	}
 

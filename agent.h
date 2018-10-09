@@ -62,108 +62,106 @@ protected:
 class rndenv : public random_agent {
 public:
     void reset_bag(){bag = {1,2,3};}
-
 	rndenv(const std::string& args = "") : random_agent("name=random role=environment " + args),
-		space({ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 }) {}
-    virtual action take_action(const board& after)
-    {
-		int init = after.get_direct();
-		if(init == -1)
-		{
-            std::shuffle(space.begin(), space.end(), engine);
-            for (int pos : space)
-            {
-                if (after(pos) != 0) continue;
-                if(bag.empty())
-                {
-                    bag = {1,2,3};
-                    std::shuffle(bag.begin(), bag.end(), engine);
-                }
-                board::cell tile = bag.back();
-                bag.pop_back();
-                return action::place(pos, tile);
-            }
-            return action();
-		}
-		else
-        {
-            op_0 = {12, 13, 14, 15};
-            op_1 = {0, 4, 8, 12};
-            op_2 = {0, 1, 2, 3};
-            op_3 = {3, 7, 11, 15};
-            switch(after.get_direct())
-            {
-                case 0:
-                    std::shuffle(op_0.begin(), op_0.end(), engine);
-                    for (int pos : op_0)
-                    {
-                        if (after(pos) != 0) continue;
-                        if(bag.empty())
-                        {
-                            bag={1,2,3};
-                            std::shuffle(bag.begin(), bag.end(), engine);
-                        }
-                        board::cell tile = bag.back();
-                        bag.pop_back();
-                        return action::place(pos, tile);
-                    }
-                    break;
-                case 1:
-                    std::shuffle(op_1.begin(), op_1.end(), engine);
-                    for (int pos : op_1)
-                    {
-                        if (after(pos) != 0) continue;
-                        if(bag.empty())
-                        {
-                            bag={1,2,3};
-                            std::shuffle(bag.begin(), bag.end(), engine);
-                        }
-                        board::cell tile = bag.back();
-                        bag.pop_back();
-                        return action::place(pos, tile);
-                    }
-                    break;
-                case 2:
-                    std::shuffle(op_2.begin(), op_2.end(), engine);
-                    for (int pos : op_2)
-                    {
-                        if (after(pos) != 0) continue;
-                        if(bag.empty())
-                        {
-                            bag={1,2,3};
-                            std::shuffle(bag.begin(), bag.end(), engine);
-                        }
-                        board::cell tile = bag.back();
-                        bag.pop_back();
-                        return action::place(pos, tile);
-                    }
-                    break;
-                case 3:
-                    std::shuffle(op_3.begin(), op_3.end(), engine);
-                    for (int pos : op_3)
-                    {
-                        if (after(pos) != 0) continue;
-                        if(bag.empty())
-                        {
-                            bag={1,2,3};
-                            std::shuffle(bag.begin(), bag.end(), engine);
-                        }
-                        board::cell tile = bag.back();
-                        bag.pop_back();
-                        return action::place(pos, tile);
-                    }
-                    break;
-                default:
-                    break;
-            }
-            return action();
-        }
-	}
+		space({ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 }), op_0({12, 13, 14, 15}), op_1({0, 4, 8, 12}), op_2({0, 1, 2, 3}), op_3({3, 7, 11, 15}){}
 
+	virtual action take_action(const board& after)
+	{
+
+        int init=after.get_direct();
+        switch(init)
+        {
+            case -1:
+                std::shuffle(space.begin(), space.end(), engine);
+                for (int pos : space)
+                {
+                    if (after(pos) != 0) continue;
+                    if (bag.empty())
+                    {
+                        bag = {1,2,3};
+                        std::shuffle(bag.begin(), bag.end(), engine);
+                    }
+                    board::cell tile = bag.back();
+                    bag.pop_back();
+                    //std::cout<<"no slide"<<pos<<','<<tile<<std::endl;
+                    return action::place(pos, tile);
+                }
+                break;
+            case 0:
+                std::shuffle(op_0.begin(), op_0.end(), engine);
+                for (int pos : op_0)
+                {
+                    if (after(pos) != 0) continue;
+                    if (bag.empty())
+                    {
+                        bag = {1,2,3};
+                        std::shuffle(bag.begin(), bag.end(), engine);
+                    }
+                    board::cell tile = bag.back();
+                    bag.pop_back();
+                    //std::cout<<'u'<<pos<<','<<tile<<std::endl;
+                    return action::place(pos, tile);
+                }
+                break;
+            case 1:
+                std::shuffle(op_1.begin(), op_1.end(), engine);
+                for (int pos : op_1)
+                {
+                    if (after(pos) != 0) continue;
+                    if (bag.empty())
+                    {
+                        bag = {1,2,3};
+                        std::shuffle(bag.begin(), bag.end(), engine);
+                    }
+                    board::cell tile = bag.back();
+                    bag.pop_back();
+                    //std::cout<<'r'<<pos<<','<<tile<<std::endl;
+                    return action::place(pos, tile);
+                }
+                break;
+            case 2:
+                std::shuffle(op_2.begin(), op_2.end(), engine);
+                for (int pos : op_2)
+                {
+                    //std::cout<<after(2)<<std::endl;
+                    if (after(pos) != 0) continue;
+                    if (bag.empty())
+                    {
+                        bag = {1,2,3};
+                        std::shuffle(bag.begin(), bag.end(), engine);
+                    }
+                    board::cell tile = bag.back();
+                    bag.pop_back();
+                    //std::cout<<'d'<<pos<<','<<tile<<std::endl;
+                    return action::place(pos, tile);
+                }
+                break;
+            case 3:
+                std::shuffle(op_3.begin(), op_3.end(), engine);
+                for (int pos : op_3)
+                {
+                    if (after(pos) != 0) continue;
+                    if (bag.empty())
+                    {
+                        bag = {1,2,3};
+                        std::shuffle(bag.begin(), bag.end(), engine);
+                    }
+                    board::cell tile = bag.back();
+                    bag.pop_back();
+                    //std::cout<<'l'<<pos<<','<<tile<<std::endl;
+                    return action::place(pos, tile);
+                }
+                break;
+            default:
+                break;
+        }
+        //std::cout<<"action"<<std::endl;
+        return action();
+	}
 
 private:
 	std::array<int, 16> space;
-	std::vector<int> bag=std::vector<int>(3);
+    std::vector<int> bag;
 	std::array<int, 4> op_0;
 	std::array<int, 4> op_1;
 	std::array<int, 4> op_2;

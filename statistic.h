@@ -7,7 +7,6 @@
 #include "action.h"
 #include "agent.h"
 #include "episode.h"
-#include <vector>
 
 class statistic {
 public:

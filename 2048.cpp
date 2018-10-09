@@ -15,11 +15,9 @@
 #include "agent.h"
 #include "episode.h"
 #include "statistic.h"
-#include <vector>
-
 
 int main(int argc, const char* argv[]) {
-	std::cout << "THREES-Demo: ";
+	std::cout << "threes-Demo: ";
 	std::copy(argv, argv + argc, std::ostream_iterator<const char*>(std::cout, " "));
 	std::cout << std::endl << std::endl;
 
@@ -49,7 +47,8 @@ int main(int argc, const char* argv[]) {
 	}
 
 	statistic stat(total, block, limit);
-    if (load.size()) {
+
+	if (load.size()) {
 		std::ifstream in(load, std::ios::in);
 		in >> stat;
 		in.close();
@@ -68,8 +67,9 @@ int main(int argc, const char* argv[]) {
 		while (true) {
 			agent& who = game.take_turns(play, evil);
 			action move = who.take_action(game.state());
-			if (game.apply_action(move) != true) break;
-			if (who.check_for_win(game.state())) break;
+			if (game.apply_action(move) != true) {/*std::cout<<"apply"<<std::endl;*/ break;}
+			if (who.check_for_win(game.state())) {/*std::cout<<"check"<<std::endl;*/ break;}
+
 		}
 		agent& win = game.last_turns(play, evil);
 		stat.close_episode(win.name());
