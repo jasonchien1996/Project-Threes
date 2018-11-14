@@ -105,7 +105,7 @@ protected:
  */
 class learning_agent : public weight_agent {
 public:
-	learning_agent(const std::string& args = "") : weight_agent(args), alpha(0.1f) {
+	learning_agent(const std::string& args = "") : weight_agent(args), alpha(0.00125f) {
 		if (meta.find("alpha") != meta.end())
 			alpha = float(meta["alpha"]);
 	}
@@ -243,6 +243,7 @@ public:
         int op, index = 0, valid = 0, t_r, reward;
         float t = -999999, direction_value;
         std::array<std::array<int, 32>, 4> key;
+
         board as = before;
         // find best action
         for (int i = 0; i < 4; i++)
@@ -261,7 +262,8 @@ public:
                     {
                         int power = 1, n = 5-k;
                         while(n--) power *=15;
-                        index = index + as.get_tile(pattern[j][k]) * power;
+                        power *= as.get_tile(pattern[j][k]);
+                        index += power;
                     }
                     key[i][j] = index;
                     if(j < 16)
@@ -274,7 +276,7 @@ public:
                 {
                     t = direction_value;
                     op = i;
-                    t_r= reward;
+                    t_r = reward;
                 }
             }
         }
@@ -292,7 +294,8 @@ public:
             {
                 int power = 1, n = 5-k;
                 while(n--) power *= 15;
-                index = index + as.get_tile(pattern[j][k]) * power;
+                power *= as.get_tile(pattern[j][k]);
+                index += power;
             }
             key[0][j] = index;
             index = 0;
@@ -344,6 +347,7 @@ public:
 private:
 	std::vector<int> r;
     std::vector<std::array<int, 32>> state_key;
+
     const int pattern[32][6]={{ 0, 4, 8, 9,12,13},
                         { 1, 5, 9,10,13,14},
                         { 3, 2, 1, 5, 0, 4},
