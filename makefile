@@ -1,4 +1,4 @@
 all:
-	g++ -std=c++11 -O3 -g -Wall -fmessage-length=0 -o threes 2048.cpp
+	g++ -std=c++11 -O3 -g -Wall -fmessage-length=0 -o threes threes.cpp
 clean:
 	rm threes
