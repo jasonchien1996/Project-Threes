@@ -46,9 +46,8 @@ public:
 	bool operator >=(const board& b) const { return !(*this < b); }
 
 public:
-
-	int get_direct()const{return direct;}
-	void set_direct(){direct = -1;}
+    int get_direct() const{ return direct; }
+	cell get_tile(int i) { return tile[i / 4][i % 4]; }
 
 	/**
 	 * place a tile (index value) to the specific position (1-d form index)
@@ -66,15 +65,6 @@ public:
 	 * return the reward of the action, or -1 if the action is illegal
 	 */
 	reward slide(unsigned opcode) {
-	    /*for(int i=0;i<4;i++)
-        {
-            for(int j=0;j<4;j++)
-            {
-                std::cout<<tile[i][j]<<' ';
-            }
-            std::cout<<std::endl;
-        }*/
-        //std::cout<<std::endl;
 		switch (opcode & 0b11) {
 		case 0: return slide_up();
 		case 1: return slide_right();
@@ -101,13 +91,13 @@ public:
                     if (hold == tile && hold > 2)
                     {
                         row[c-1] = ++tile;
-                        score = (1 << tile);
+                        //score = (1 << tile);
                         blank = 1;
                     }
 					else if (abs((hold - tile)) == 1 && (hold + tile) == 3)
                     {
                         row[c-1] = 3;
-                        score += (1 << tile);
+                        //score += (1 << tile);
                         blank = 1;
                     }
                     else
@@ -123,14 +113,34 @@ public:
 			}
 		}
 		direct = 3;
-		return (*this != prev) ? score : -1;
+		if(*this != prev)
+		{
+		    int a = 0, b = 0;
+            for(int i = 0; i < 16; i++)
+            {
+                if(tile[i/4][i%4] > 2)
+                {
+                    int power = 1, n = tile[i/4][i%4]-2;
+                    while(n--) power *= 3;
+                    a += power;
+                }
+                if(prev.tile[i/4][i%4] > 2)
+                {
+                    int power = 1, n = prev.tile[i/4][i%4]-2;
+                    while(n--) power *= 3;
+                    b += power;
+                }
+            }
+            score = a - b;
+            return score;
+		}
+		return -1;
 	}
 	reward slide_right() {
 		reflect_horizontal();
 		reward score = slide_left();
 		reflect_horizontal();
 		direct = 1;
-		//std::cout<<'r'<<std::endl;
 		return score;
 	}
 	reward slide_up() {
@@ -138,7 +148,6 @@ public:
 		reward score = slide_right();
 		rotate_left();
 		direct = 0;
-		//std::cout<<'u'<<std::endl;
 		return score;
 	}
 	reward slide_down() {
@@ -146,7 +155,6 @@ public:
 		reward score = slide_left();
 		rotate_left();
 		direct = 2;
-		//std::cout<<'d'<<std::endl;
 		return score;
 	}
 
