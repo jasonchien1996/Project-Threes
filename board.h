@@ -47,7 +47,7 @@ public:
 
 public:
     int get_direct() const{ return direct; }
-	cell get_tile(int i) { return tile[i / 4][i % 4]; }
+    int get_board_max() const{ return max; }
 
 	/**
 	 * place a tile (index value) to the specific position (1-d form index)
@@ -55,7 +55,12 @@ public:
 	 */
 	reward place(unsigned pos, cell tile) {
 		if (pos >= 16) return -1;
-		if (tile != 1 && tile != 2 && tile != 3) return -1;
+		if (max > 6){
+            if(tile > max-3) return -1;
+		}
+        else{
+            if(tile != 1 && tile != 2 && tile != 3) return -1;
+        }
 		operator()(pos) = tile;
 		return 0;
 	}
@@ -74,59 +79,47 @@ public:
 		}
 	}
 
-	reward slide_left()
-	{
+	reward slide_left() {
 		board prev = *this;
 		reward score = 0;
-		for (int r = 0; r < 4; r++)
-        {
+		for(int r = 0; r < 4; r++){
 			auto& row = tile[r];
 			int hold = 0, blank = 0;
-			for (int c = 0; c < 4; c++)
-            {
+			for(int c = 0; c < 4; c++){
 				int tile = row[c];
-				if (tile == 0){blank = 1;}
-                else
-                {
-                    if (hold == tile && hold > 2)
-                    {
+				if(tile == 0){blank = 1;}
+                else{
+                    if (hold == tile && hold > 2){
                         row[c-1] = ++tile;
-                        //score = (1 << tile);
                         blank = 1;
+                        if(row[c-1] > max) max = row[c-1];
                     }
-					else if (abs((hold - tile)) == 1 && (hold + tile) == 3)
-                    {
+					else if (abs((hold - tile)) == 1 && (hold + tile) == 3){
                         row[c-1] = 3;
-                        //score += (1 << tile);
                         blank = 1;
+                        if(row[c-1] > max) max = row[c-1];
                     }
                     else
                         hold = tile;
                 }
-                if(blank == 1)
-                {
-                    for(int i = c; i < 3; i++)
-                        row[i] = row[i+1];
+                if(blank == 1){
+                    for(int i = c; i < 3; i++) row[i] = row[i+1];
                     row[3] = 0;
                     break;
                 }
 			}
 		}
 		direct = 3;
-		if(*this != prev)
-		{
+		if(*this != prev){
 		    int a = 0, b = 0;
-            for(int i = 0; i < 16; i++)
-            {
-                if(tile[i/4][i%4] > 2)
-                {
-                    int power = 1, n = tile[i/4][i%4]-2;
+            for(int i = 0; i < 16; i++){
+                if(operator ()(i) > 2){
+                    int power = 1, n = operator ()(i) -2;
                     while(n--) power *= 3;
                     a += power;
                 }
-                if(prev.tile[i/4][i%4] > 2)
-                {
-                    int power = 1, n = prev.tile[i/4][i%4]-2;
+                if(prev.operator ()(i) > 2){
+                    int power = 1, n = prev.operator ()(i) -2;
                     while(n--) power *= 3;
                     b += power;
                 }
@@ -202,7 +195,11 @@ public:
 		out << "+------------------------+" << std::endl;
 		for (auto& row : b.tile) {
 			out << "|" << std::dec;
-			for (auto t : row) out << std::setw(6) << ((1 << t) & -2u);
+
+			for (auto t : row){
+                    int k = (t > 3) ? (1 << (t-3) & -2u)*3 : t;
+                    out << std::setw(6) << k;
+			}
 			out << "|" << std::endl;
 		}
 		out << "+------------------------+" << std::endl;
@@ -213,4 +210,5 @@ private:
 	grid tile;
 	data attr;
 	int direct = -1;
+	int max = 0;
 };

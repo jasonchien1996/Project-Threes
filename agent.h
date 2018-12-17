@@ -33,6 +33,7 @@ public:
 	virtual std::string name() const { return property("name"); }
 	virtual std::string role() const { return property("role"); }
 
+    int hint = 0;
 protected:
 	typedef std::string key;
 	struct value {
@@ -74,9 +75,8 @@ public:
 
 protected:
 	virtual void init_weights(const std::string& info) {
-		net.emplace_back(11390625); // create an empty weight table with size 65536
-		net.emplace_back(11390625); // create an empty weight table with size 65536
-		// now net.size() == 2; net[0].size() == 65536; net[1].size() == 65536
+		net.emplace_back(136687500); // create an empty weight table with size 15**6*11
+		net.emplace_back(136687500); // now net.size() == 2; net[0].size() == 65536; net[1].size() == 65536
 	}
 	virtual void load_weights(const std::string& path) {
 		std::ifstream in(path, std::ios::in | std::ios::binary);
@@ -105,7 +105,7 @@ protected:
  */
 class learning_agent : public weight_agent {
 public:
-	learning_agent(const std::string& args = "") : weight_agent(args), alpha(0.00125f) {
+	learning_agent(const std::string& args = "") : weight_agent(args), alpha(0.4f) {
 		if (meta.find("alpha") != meta.end())
 			alpha = float(meta["alpha"]);
 	}
@@ -121,113 +121,114 @@ protected:
  * 2-tile: 90%
  * 4-tile: 10%
  */
-class rndenv : public random_agent {
+class rndenv : public random_agent{
 public:
-    void reset_bag(){bag = {1,2,3};}
-	rndenv(const std::string& args = "") : random_agent("name=random role=environment " + args),
+    void reset(){
+        bag = {1,1,1,1,2,2,2,2,3,3,3,3};
+        std::shuffle(bag.begin(), bag.end(), engine);
+        bonus.clear();
+        bonus_max = 0;
+        num_bag = 0;
+        num_bonus = 0;
+        hint = 0;
+    }
+
+	rndenv(const std::string& args = "") : random_agent("name=random role=environment " + args), bag({1,1,1,1,2,2,2,2,3,3,3,3}),
 		space({ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 }), op_0({12, 13, 14, 15}), op_1({0, 4, 8, 12}), op_2({0, 1, 2, 3}), op_3({3, 7, 11, 15}){}
 
-	virtual action take_action(const board& after)
-	{
-
-        int init=after.get_direct();
-        switch(init)
-        {
-            case -1:
-                std::shuffle(space.begin(), space.end(), engine);
-                for (int pos : space)
-                {
-                    if (after(pos) != 0) continue;
-                    if (bag.empty())
-                    {
-                        bag = {1,2,3};
-                        std::shuffle(bag.begin(), bag.end(), engine);
-                    }
-                    board::cell tile = bag.back();
-                    bag.pop_back();
-                    //std::cout<<"no slide"<<pos<<','<<tile<<std::endl;
-                    return action::place(pos, tile);
-                }
-                break;
-            case 0:
-                std::shuffle(op_0.begin(), op_0.end(), engine);
-                for (int pos : op_0)
-                {
-                    if (after(pos) != 0) continue;
-                    if (bag.empty())
-                    {
-                        bag = {1,2,3};
-                        std::shuffle(bag.begin(), bag.end(), engine);
-                    }
-                    board::cell tile = bag.back();
-                    bag.pop_back();
-                    //std::cout<<'u'<<pos<<','<<tile<<std::endl;
-                    return action::place(pos, tile);
-                }
-                break;
-            case 1:
-                std::shuffle(op_1.begin(), op_1.end(), engine);
-                for (int pos : op_1)
-                {
-                    if (after(pos) != 0) continue;
-                    if (bag.empty())
-                    {
-                        bag = {1,2,3};
-                        std::shuffle(bag.begin(), bag.end(), engine);
-                    }
-                    board::cell tile = bag.back();
-                    bag.pop_back();
-                    //std::cout<<'r'<<pos<<','<<tile<<std::endl;
-                    return action::place(pos, tile);
-                }
-                break;
-            case 2:
-                std::shuffle(op_2.begin(), op_2.end(), engine);
-                for (int pos : op_2)
-                {
-                    //std::cout<<after(2)<<std::endl;
-                    if (after(pos) != 0) continue;
-                    if (bag.empty())
-                    {
-                        bag = {1,2,3};
-                        std::shuffle(bag.begin(), bag.end(), engine);
-                    }
-                    board::cell tile = bag.back();
-                    bag.pop_back();
-                    //std::cout<<'d'<<pos<<','<<tile<<std::endl;
-                    return action::place(pos, tile);
-                }
-                break;
-            case 3:
-                std::shuffle(op_3.begin(), op_3.end(), engine);
-                for (int pos : op_3)
-                {
-                    if (after(pos) != 0) continue;
-                    if (bag.empty())
-                    {
-                        bag = {1,2,3};
-                        std::shuffle(bag.begin(), bag.end(), engine);
-                    }
-                    board::cell tile = bag.back();
-                    bag.pop_back();
-                    //std::cout<<'l'<<pos<<','<<tile<<std::endl;
-                    return action::place(pos, tile);
-                }
-                break;
-            default:
-                break;
+    void generate_hint(const board& after){
+        int new_hint;
+        int b_max = after.get_board_max();
+        if(bag.empty()){
+            bag = {1,1,1,1,2,2,2,2,3,3,3,3};
+            std::shuffle(bag.begin(), bag.end(), engine);
         }
-        //std::cout<<"action"<<std::endl;
+        //exist 48-tile
+        if(b_max > 6){
+            if(b_max-3 > bonus_max){
+                bonus_max = b_max-3;
+                bonus.push_back(bonus_max);
+            }
+            std::mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
+            std::uniform_int_distribution<> pro(1, 21);
+            //bonus
+            if(pro(gen) == 1){
+                float ratio = (num_bonus+1)/(num_bonus+num_bag+1);
+                if(ratio <= 1/21){
+                    std::uniform_int_distribution<> dis(0, bonus.size()-1);
+                    new_hint = bonus[dis(gen)];
+                    num_bonus++;
+                }
+                else{
+                    new_hint = bag.back();
+                    bag.pop_back();
+                    num_bag++;
+                }
+            }
+            //no bonus
+            else{
+                new_hint = bag.back();
+                bag.pop_back();
+                num_bag++;
+            }
+        }
+        //non-exist 48-tile
+        else{
+            new_hint = bag.back();
+            bag.pop_back();
+            num_bag++;
+        }
+        hint = new_hint;
+    }
+
+	virtual action take_action(const board& after){
+        int last = after.get_direct();
+        int h = hint;
+        /*std::cout<<"before evil\n"<<after;
+        std::cout<<"hint"<<hint<<std::endl;
+        for (auto i = bag.begin(); i != bag.end(); ++i)
+            std::cout << *i << ' ';
+        std::cout<<"\n";*/
+
+        if(last == -1){
+            std::shuffle(space.begin(), space.end(), engine);
+            if(h == 0){
+                h = bag.back();
+                bag.pop_back();
+                num_bag++;
+            }
+            for (int pos : space){
+                if (after(pos) != 0) continue;
+                generate_hint(after);
+                return action::place(pos, h);
+            }
+        }
+        else if(last == 0) op = op_0;
+        else if(last == 1) op = op_1;
+        else if(last == 2) op = op_2;
+        else if(last == 3) op = op_3;
+        std::shuffle(op.begin(), op.end(), engine);
+        for(int pos : op){
+            if(after(pos) != 0) continue;
+            generate_hint(after);
+            return action::place(pos, h);
+        }
         return action();
 	}
 
 private:
 	std::array<int, 16> space;
     std::vector<int> bag;
+    std::vector<int> bonus;
+    int bonus_max = 0;
+    int num_bag = 0;
+    int num_bonus = 0;
+    std::array<int, 4> op;
 	std::array<int, 4> op_0;
 	std::array<int, 4> op_1;
 	std::array<int, 4> op_2;
 	std::array<int, 4> op_3;
+    std::random_device rd;//Will be used to obtain a seed for the random number engine
 };
 
 /**
@@ -236,44 +237,45 @@ private:
  */
 class player : public learning_agent {
 public:
-	player(const std::string& args = "") : learning_agent("name=learning role=player " + args) {}
+	player(const std::string& args = "") : learning_agent("name=learning role=player " + args){}
 
-	virtual action take_action(const board &before)
-	{
-        int op, index = 0, valid = 0, t_r, reward;
+    int find_index(int j, board as) {
+        int index = 0;
+        for(int k = 0; k < 6; k++) {
+            int power = 1, n = k;
+            while(n--) power *=15;
+            power *= as.operator()(pattern[j][k]);
+            index += power;
+        }
+        index = 11390625 * hint + index;
+        return index;
+    }
+
+	virtual action take_action(const board &before) {
+        /*std::cout<<"before play\n"<<before;
+        std::cout<<"hint"<<hint<<std::endl;*/
+
+        int op, index, valid = 0, t_r, reward;
         float t = -999999, direction_value;
         std::array<std::array<int, 32>, 4> key;
-
         board as = before;
         // find best action
-        for (int i = 0; i < 4; i++)
-        {
+        for(int i = 0; i < 4; i++){
             direction_value = 0;
             as = before;
             reward = as.slide(i); // r
-            //std::cout<<"reward"<<i<<" "<<reward[i]<<std::endl;
-            if (reward != -1)
-            {
+            if(reward != -1){
                 valid = 1;
                 direction_value += reward;
-                for (int j = 0; j < 32; j++)
-                {
-                    for (int k = 0; k < 6; k++)//find index
-                    {
-                        int power = 1, n = 5-k;
-                        while(n--) power *=15;
-                        power *= as.get_tile(pattern[j][k]);
-                        index += power;
-                    }
+                for(int j = 0; j < 32; j++){
+                    index = find_index(j,as);
                     key[i][j] = index;
                     if(j < 16)
                         direction_value += net[0][index]; // v(as)
                     else
                         direction_value += net[1][index];
-                    index = 0;
                 }
-                if (direction_value > t)
-                {
+                if(direction_value > t){
                     t = direction_value;
                     op = i;
                     t_r = reward;
@@ -281,43 +283,30 @@ public:
             }
         }
         //not terminal
-        if (valid == 1)
-        {
+        if(valid == 1) {
             state_key.push_back(key[op]);
             r.push_back(t_r);
             return action::slide(op);
         }
         //terminal
-        for (int j = 0; j < 32; j++)
-        {
-            for (int k = 0; k < 6; k++)
-            {
-                int power = 1, n = 5-k;
-                while(n--) power *= 15;
-                power *= as.get_tile(pattern[j][k]);
-                index += power;
-            }
+        for(int j = 0; j < 32; j++){
+            index = find_index(j,as);
             key[0][j] = index;
-            index = 0;
         }
         state_key.push_back(key[0]);
         r.push_back(0);
         return action();
     }
 
-    void training()
-    {
-        //training
+    void training() {
         std::array<int, 32> as_key;
         float sum = 0, v_as, amend;
         r.push_back(0);
-        while (!state_key.empty())
-        {
+        while(!state_key.empty()){
             as_key = state_key.back();
             v_as = sum;
             sum = 0;
-            for (int j = 0; j < 32; j++)
-            {
+            for(int j = 0; j < 32; j++){
                 if(j<16)
                     sum += net[0][as_key[j]];
                 else
@@ -325,15 +314,12 @@ public:
             }
             amend = alpha * (r.back() + v_as - sum) / 32;
             sum = 0;
-            for (int i = 0; i < 32; i++)
-            {
-                if(i < 16)
-                {
+            for(int i = 0; i < 32; i++){
+                if(i < 16){
                     net[0][as_key[i]] += amend;
                     sum += net[0][as_key[i]];
                 }
-                else
-                {
+                else{
                     net[1][as_key[i]] += amend;
                     sum += net[1][as_key[i]];
                 }
@@ -347,7 +333,6 @@ public:
 private:
 	std::vector<int> r;
     std::vector<std::array<int, 32>> state_key;
-
     const int pattern[32][6]={{ 0, 4, 8, 9,12,13},
                         { 1, 5, 9,10,13,14},
                         { 3, 2, 1, 5, 0, 4},
@@ -380,12 +365,4 @@ private:
                         { 1, 0, 5, 4, 9, 8},
                         { 4, 8, 5, 9, 6,10},
                         { 8,12, 9,13,10,14}};
-    /*const int pattern[8][4] = {{0, 1, 2, 3},
-                        { 4, 5, 6, 7},
-                        { 8, 9,10,11},
-                        {12,13,14,15},
-                        { 0, 4, 8,12},
-                        { 1, 5, 9,13},
-                        { 2, 6,10,14},
-                        { 3, 7,11,15}};*/
 };
