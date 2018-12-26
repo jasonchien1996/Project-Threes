@@ -2,9 +2,10 @@
 #include <array>
 #include <iostream>
 #include <iomanip>
+#include <vector>
 
 /**
- * array-based board for 2048
+ * array-based board for threes
  *
  * index (1-d form):
  *  (0)  (1)  (2)  (3)
@@ -46,19 +47,19 @@ public:
 	bool operator >=(const board& b) const { return !(*this < b); }
 
 public:
-    int get_direct() const{ return direct; }
-    int get_board_max() const{ return max; }
+    int get_last() const { return last; }
+    uint8_t get_board_max() const { return max; }
 
 	/**
 	 * place a tile (index value) to the specific position (1-d form index)
 	 * return 0 if the action is valid, or -1 if not
 	 */
 	reward place(unsigned pos, cell tile) {
-		if (pos >= 16) return -1;
-		if (max > 6){
-            if(tile > max-3) return -1;
+		if(pos >= 16) return -1;
+		if(max > 6){
+            if(tile > abs(max - 3)) return -1;
 		}
-        else{
+        else {
             if(tile != 1 && tile != 2 && tile != 3) return -1;
         }
 		operator()(pos) = tile;
@@ -92,11 +93,15 @@ public:
                     if (hold == tile && hold > 2){
                         row[c-1] = ++tile;
                         blank = 1;
+                        int power = 1, n = row[c-1]-3;
+                        while(n--) power *= 3;
+                        score += power * (row[c-1] + 3);
                         if(row[c-1] > max) max = row[c-1];
                     }
 					else if (abs((hold - tile)) == 1 && (hold + tile) == 3){
                         row[c-1] = 3;
                         blank = 1;
+                        score += 9;
                         if(row[c-1] > max) max = row[c-1];
                     }
                     else
@@ -109,45 +114,29 @@ public:
                 }
 			}
 		}
-		direct = 3;
-		if(*this != prev){
-		    int a = 0, b = 0;
-            for(int i = 0; i < 16; i++){
-                if(operator ()(i) > 2){
-                    int power = 1, n = operator ()(i) -2;
-                    while(n--) power *= 3;
-                    a += power;
-                }
-                if(prev.operator ()(i) > 2){
-                    int power = 1, n = prev.operator ()(i) -2;
-                    while(n--) power *= 3;
-                    b += power;
-                }
-            }
-            score = a - b;
-            return score;
-		}
-		return -1;
+		last = 3;
+		if(*this != prev) { return score; }
+        return -1;
 	}
 	reward slide_right() {
 		reflect_horizontal();
 		reward score = slide_left();
 		reflect_horizontal();
-		direct = 1;
+		last = 1;
 		return score;
 	}
 	reward slide_up() {
 		rotate_right();
 		reward score = slide_right();
 		rotate_left();
-		direct = 0;
+		last = 0;
 		return score;
 	}
 	reward slide_down() {
 		rotate_right();
 		reward score = slide_left();
 		rotate_left();
-		direct = 2;
+		last = 2;
 		return score;
 	}
 
@@ -193,10 +182,10 @@ public:
 public:
 	friend std::ostream& operator <<(std::ostream& out, const board& b) {
 		out << "+------------------------+" << std::endl;
-		for (auto& row : b.tile) {
+		for(auto& row : b.tile) {
 			out << "|" << std::dec;
 
-			for (auto t : row){
+			for(auto t : row){
                     int k = (t > 3) ? (1 << (t-3) & -2u)*3 : t;
                     out << std::setw(6) << k;
 			}
@@ -206,9 +195,14 @@ public:
 		return out;
 	}
 
+public:
+    char type;
+    int hint;
+    std::array<int,3> bag;
+
 private:
 	grid tile;
 	data attr;
-	int direct = -1;
-	int max = 0;
+	int last = -1;
+	uint8_t max = 0;
 };

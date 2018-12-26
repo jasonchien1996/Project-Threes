@@ -25,7 +25,7 @@ int main(int argc, const char* argv[]) {
 	std::string play_args, evil_args;
 	std::string load, save;
 	bool summary = false;
-	for (int i = 1; i < argc; i++) {
+	for(int i = 1; i < argc; i++) {
 		std::string para(argv[i]);
 		if (para.find("--total=") == 0) {
 			total = std::stoull(para.substr(para.find("=") + 1));
@@ -48,7 +48,7 @@ int main(int argc, const char* argv[]) {
 
 	statistic stat(total, block, limit);
 
-	if (load.size()) {
+	if(load.size()) {
 		std::ifstream in(load, std::ios::in);
 		in >> stat;
 		in.close();
@@ -58,17 +58,19 @@ int main(int argc, const char* argv[]) {
 	player play(play_args);
 	rndenv evil(evil_args);
 
-	while (!stat.is_finished()) {
+	while(!stat.is_finished()) {
 		play.open_episode("~:" + evil.name());
 		evil.open_episode(play.name() + ":~");
 		stat.open_episode(play.name() + ":" + evil.name());
 		episode& game = stat.back();
-		while (true) {
+		while(true) {
             agent& who = game.take_turns(play, evil);
 			action move = who.take_action(game.state());
-			play.hint = evil.hint;
-			if (game.apply_action(move) != true) break;
-			if (who.check_for_win(game.state())) break;
+			if(evil.hint > 3) { play.hint = 4; }
+            else { play.hint = evil.hint; }
+            play.bag.assign(evil.bag.begin(), evil.bag.end());
+			if(game.apply_action(move) != true) break;
+			if(who.check_for_win(game.state())) break;
 		}
 		agent& win = game.last_turns(play, evil);
 		stat.close_episode(win.name());
@@ -78,11 +80,11 @@ int main(int argc, const char* argv[]) {
 		play.training();
 	}
 
-	if (summary) {
+	if(summary) {
 		stat.summary();
 	}
 
-	if (save.size()) {
+	if(save.size()) {
 		std::ofstream out(save, std::ios::out | std::ios::trunc);
 		out << stat;
 		out.close();
