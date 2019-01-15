@@ -16,7 +16,7 @@
 #include "episode.h"
 #include "statistic.h"
 
-int main(int argc, const char* argv[]) {
+int main(int argc, const char* argv[]){
 	std::cout << "threes-Demo: ";
 	std::copy(argv, argv + argc, std::ostream_iterator<const char*>(std::cout, " "));
 	std::cout << std::endl << std::endl;
@@ -25,30 +25,30 @@ int main(int argc, const char* argv[]) {
 	std::string play_args, evil_args;
 	std::string load, save;
 	bool summary = false;
-	for(int i = 1; i < argc; i++) {
+	for(int i = 1; i < argc; ++i){
 		std::string para(argv[i]);
-		if (para.find("--total=") == 0) {
+		if(para.find("--total=") == 0){
 			total = std::stoull(para.substr(para.find("=") + 1));
-		} else if (para.find("--block=") == 0) {
+		}else if(para.find("--block=") == 0){
 			block = std::stoull(para.substr(para.find("=") + 1));
-		} else if (para.find("--limit=") == 0) {
+		}else if(para.find("--limit=") == 0){
 			limit = std::stoull(para.substr(para.find("=") + 1));
-		} else if (para.find("--play=") == 0) {
+		}else if(para.find("--play=") == 0){
 			play_args = para.substr(para.find("=") + 1);
-		} else if (para.find("--evil=") == 0) {
+		}else if(para.find("--evil=") == 0){
 			evil_args = para.substr(para.find("=") + 1);
-		} else if (para.find("--load=") == 0) {
+		}else if(para.find("--load=") == 0){
 			load = para.substr(para.find("=") + 1);
-		} else if (para.find("--save=") == 0) {
+		}else if(para.find("--save=") == 0){
 			save = para.substr(para.find("=") + 1);
-		} else if (para.find("--summary") == 0) {
+		}else if(para.find("--summary") == 0){
 			summary = true;
 		}
 	}
 
 	statistic stat(total, block, limit);
 
-	if(load.size()) {
+	if(load.size()){
 		std::ifstream in(load, std::ios::in);
 		in >> stat;
 		in.close();
@@ -58,16 +58,16 @@ int main(int argc, const char* argv[]) {
 	player play(play_args);
 	rndenv evil(evil_args);
 
-	while(!stat.is_finished()) {
+	while(!stat.is_finished()){
 		play.open_episode("~:" + evil.name());
 		evil.open_episode(play.name() + ":~");
 		stat.open_episode(play.name() + ":" + evil.name());
 		episode& game = stat.back();
-		while(true) {
+		while(true){
             agent& who = game.take_turns(play, evil);
 			action move = who.take_action(game.state());
-			if(evil.hint > 3) { play.hint = 4; }
-            else { play.hint = evil.hint; }
+			if(evil.hint > 3){ play.hint = 4; }
+            else{ play.hint = evil.hint; }
             play.bag.assign(evil.bag.begin(), evil.bag.end());
 			if(game.apply_action(move) != true) break;
 			if(who.check_for_win(game.state())) break;
@@ -79,16 +79,13 @@ int main(int argc, const char* argv[]) {
 		evil.reset();
 		play.training();
 	}
-
-	if(summary) {
+	if(summary){
 		stat.summary();
 	}
-
-	if(save.size()) {
+	if(save.size()){
 		std::ofstream out(save, std::ios::out | std::ios::trunc);
 		out << stat;
 		out.close();
 	}
-
 	return 0;
 }

@@ -11,12 +11,12 @@
 #include <fstream>
 #include <math.h>
 
-class agent {
+class agent{
 public:
 	agent(const std::string& args = "") : bag({1,1,1,1,2,2,2,2,3,3,3,3}),
-	    op_0({12, 13, 14, 15}), op_1({0, 4, 8, 12}), op_2({0, 1, 2, 3}), op_3({3, 7, 11, 15}){
+        op_0({12, 13, 14, 15}), op_1({0, 4, 8, 12}), op_2({0, 1, 2, 3}), op_3({3, 7, 11, 15}){
 		std::stringstream ss("name=unknown role=unknown " + args);
-		for (std::string pair; ss >> pair; ) {
+		for(std::string pair; ss >> pair; ){
 			std::string key = pair.substr(0, pair.find('='));
 			std::string value = pair.substr(pair.find('=') + 1);
 			meta[key] = { value };
@@ -37,10 +37,10 @@ public:
 public:
     int hint = 0;
     std::vector<int> bag;
-
+  
 protected:
 	typedef std::string key;
-	struct value {
+	struct value{
 		std::string value;
 		operator std::string() const { return value; }
 		template<typename numeric, typename = typename std::enable_if<std::is_arithmetic<numeric>::value, numeric>::type>
@@ -53,10 +53,10 @@ protected:
 	std::array<int, 4> op_3;
 };
 
-class random_agent : public agent {
+class random_agent : public agent{
 public:
-	random_agent(const std::string& args = "") : agent(args) {
-		if (meta.find("seed") != meta.end())
+	random_agent(const std::string& args = "") : agent(args){
+		if(meta.find("seed") != meta.end())
 			engine.seed(int(meta["seed"]));
 	}
 	virtual ~random_agent() {}
@@ -68,39 +68,39 @@ protected:
 /**
  * base agent for agents with weight tables
  */
-class weight_agent : public agent {
+class weight_agent : public agent{
 public:
-	weight_agent(const std::string& args = "") : agent(args) {
+	weight_agent(const std::string& args = "") : agent(args){
 		//if (meta.find("init") != meta.end()) // pass init=... to initialize the weight
 			init_weights(meta["init"]);
-		if (meta.find("load") != meta.end()) // pass load=... to load from a specific file
+		if(meta.find("load") != meta.end()) // pass load=... to load from a specific file
 			load_weights(meta["load"]);
 	}
-	virtual ~weight_agent() {
-		if (meta.find("save") != meta.end()) // pass save=... to save to a specific file
+	virtual ~weight_agent(){
+		if(meta.find("save") != meta.end()) // pass save=... to save to a specific file
 			save_weights(meta["save"]);
 	}
 
 protected:
-	virtual void init_weights(const std::string& info) {
+	virtual void init_weights(const std::string& info){
 		net.emplace_back(227812500); // create an empty weight table with size 15**6*4*5
 		net.emplace_back(227812500); // now net.size() == 2; net[0].size() == 227812500; net[1].size() == 227812500
 	}
-	virtual void load_weights(const std::string& path) {
+	virtual void load_weights(const std::string& path){
 		std::ifstream in(path, std::ios::in | std::ios::binary);
-		if (!in.is_open()) std::exit(-1);
+		if(!in.is_open()) std::exit(-1);
 		uint32_t size;
 		in.read(reinterpret_cast<char*>(&size), sizeof(size));
 		net.resize(size);
-		for (weight& w : net) in >> w;
+		for(weight& w : net) in >> w;
 		in.close();
 	}
-	virtual void save_weights(const std::string& path) {
+	virtual void save_weights(const std::string& path){
 		std::ofstream out(path, std::ios::out | std::ios::binary | std::ios::trunc);
-		if (!out.is_open()) std::exit(-1);
+		if(!out.is_open()) std::exit(-1);
 		uint32_t size = net.size();
 		out.write(reinterpret_cast<char*>(&size), sizeof(size));
-		for (weight& w : net) out << w;
+		for(weight& w : net) out << w;
 		out.close();
 	}
 
@@ -111,10 +111,10 @@ protected:
 /**
  * base agent for agents with a learning rate
  */
-class learning_agent : public weight_agent {
+class learning_agent : public weight_agent{
 public:
-	learning_agent(const std::string& args = "") : weight_agent(args), alpha(0.1f/32) {
-		if (meta.find("alpha") != meta.end())
+	learning_agent(const std::string& args = "") : weight_agent(args), alpha(0.00001f/32){
+		if(meta.find("alpha") != meta.end())
 			alpha = float(meta["alpha"]);
 	}
 	virtual ~learning_agent() {}
@@ -128,6 +128,9 @@ protected:
  */
 class rndenv : public random_agent{
 public:
+    rndenv(const std::string& args = "") : random_agent("name=random role=environment " + args),
+		space({ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 }){}
+
     void reset(){
         bag = {1,1,1,1,2,2,2,2,3,3,3,3};
         std::shuffle(bag.begin(), bag.end(), engine);
@@ -137,13 +140,10 @@ public:
         num_bonus = 0;
         hint = 0;
     }
-
-	rndenv(const std::string& args = "") : random_agent("name=random role=environment " + args),
-		space({ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 }){}
-
+    
     void generate_hint(const board& after){
         int new_hint;
-        uint8_t b_max = after.get_board_max();
+        int b_max = after.max;
         if(bag.empty()){
             bag = {1,1,1,1,2,2,2,2,3,3,3,3};
             std::shuffle(bag.begin(), bag.end(), engine);
@@ -158,67 +158,89 @@ public:
             std::uniform_int_distribution<> pro(1, 21);
             //bonus
             if(pro(gen) == 1){
-                float ratio = (num_bonus+1)/(num_bonus+num_bag+1);
+                float ratio = (num_bonus)/(num_bonus+num_bag);
                 if(ratio <= 1/21){
                     std::uniform_int_distribution<> dis(0, bonus.size()-1);
                     new_hint = bonus[dis(gen)];
-                    num_bonus++;
+                    ++num_bonus;
                 }
                 else{
                     new_hint = bag.back();
                     bag.pop_back();
-                    num_bag++;
+                    ++num_bag;
                 }
             }
             //no bonus
             else{
                 new_hint = bag.back();
                 bag.pop_back();
-                num_bag++;
+                ++num_bag;
             }
         }
         //non-exist 48-tile
         else{
             new_hint = bag.back();
             bag.pop_back();
-            num_bag++;
+            ++num_bag;
         }
         hint = new_hint;
         return;
     }
 
 	virtual action take_action(const board& after){
-        int last = after.get_last();
+        int last = after.last;
         int h = hint;
-        if(last == -1){
-            std::shuffle(space.begin(), space.end(), engine);
-            if(h == 0){
-                h = bag.back();
-                bag.pop_back();
-                num_bag++;
-            }
-            for (int pos : space){
-                if (after(pos) != 0) continue;
-                generate_hint(after);
-                return action::place(pos, h);
-            }
-        }
-        else if(last == 0) op = op_0;
-        else if(last == 1) op = op_1;
-        else if(last == 2) op = op_2;
-        else if(last == 3) op = op_3;
-        std::shuffle(op.begin(), op.end(), engine);
-        for(int pos : op){
-            if(after(pos) != 0) continue;
-            generate_hint(after);
-            return action::place(pos, h);
-        }
-        return action();
+        switch(last){
+            case -1:
+                if(last == -1){
+                    std::shuffle(space.begin(), space.end(), engine);
+                    if(h == 0){
+                        h = bag.back();
+                        bag.pop_back();
+                        ++num_bag;
+                    }
+                    for (int pos : space){
+                        if (after(pos) != 0) continue;
+                        generate_hint(after);
+                        return action::place(pos, h);
+                    }
+                }
+            case 0:
+                std::shuffle(op_0.begin(), op_0.end(), engine);
+                for(int pos : op_0){
+                    if(after(pos) != 0) continue;
+                    generate_hint(after);
+                    return action::place(pos, h);
+                }
+            case 1:
+                std::shuffle(op_1.begin(), op_1.end(), engine);
+                for(int pos : op_1){
+                    if(after(pos) != 0) continue;
+                    generate_hint(after);
+                    return action::place(pos, h);
+                }
+            case 2:
+                std::shuffle(op_2.begin(), op_2.end(), engine);
+                for(int pos : op_2){
+                    if(after(pos) != 0) continue;
+                    generate_hint(after);
+                    return action::place(pos, h);
+                }
+            case 3:
+                std::shuffle(op_3.begin(), op_3.end(), engine);
+                for(int pos : op_3){
+                    if(after(pos) != 0) continue;
+                    generate_hint(after);
+                    return action::place(pos, h);
+                }
+            default:
+                return action();
+        }        
 	}
 
 private:
-    std::random_device rd;//Will be used to obtain a seed for the random number engine
-    std::array<int, 16> space;
+    std::random_device rd;
+	std::array<int, 16> space;
     std::vector<int> bonus;
     std::array<int, 4> op;
     int bonus_max = 0;
@@ -230,142 +252,246 @@ private:
  * td0 player
  * select a best action
  */
-class player : public learning_agent {
+class player : public learning_agent{
 public:
-	player(const std::string& args = "") : learning_agent("name=learning role=player " + args){}
+	player(const std::string& args = "") : learning_agent("name=learning role=player " + args){ std::srand(time(NULL)); }
  
     //get index according to the borad
-    int find_index(int j, board as, int h) {
+    int find_index(int j, board as){
         int index = 0;
-        int last = as.get_last();
-        //#pragma omp parallel for reduction(+:index)
-        for(int k = 0; k < 6; k++) {
-            int power = 1;
-            int n = k;
-            while(n--) power *= 15;
-            power *= as.operator()(pattern[j][k]);
-            index += power;
-        }
-        if(last == -1) { last = 4; }
-        index = 11390625 * (4 * last + (h - 1)) + index;//11390625 * 4 * last + 11390625 * (h - 1) + index;
+        int last = as.last;
+        index = as.operator()(pattern[j][0]) + as.operator()(pattern[j][1]) * 15 + as.operator()(pattern[j][2]) * 225 + as.operator()(pattern[j][3]) * 3375 + as.operator()(pattern[j][4]) * 50625 + as.operator()(pattern[j][5]) * 759375;
+        if(last == -1){ last = 4; }
+        index = 11390625 * (4 * last + (as.hint - 1)) + index;//11390625 * 4 * last + 11390625 * (h - 1) + index;
         return index;
     }
     
     //search
-    float search(board before, int k) {
+    float search(board before, int k){
         int index;
         int layer = k-1;
         board after;
         //play node
-        if(before.type == 'b') {
+        if(before.type == 'b'){
             float score = -99999;
-            //depth = 0
-            if(k == 0) {
-                score = 0;
-                for(int j = 0; j < 32; j++) {
-                    index = find_index(j,before,before.hint);
-                    if(j < 16) { score += net[0][index]; }
-                    else { score += net[1][index]; }
-                }
-                return score;
-            }
-            //depth != 0
             int r, v = 0;
-            for(int i = 0; i < 4; i++) {                
+            for(int i = 0; i < 4; ++i){                
                 after = before;
                 r = after.slide(i);
-                if(r != -1) {
+                if(r != -1){
                     v = 1;
                     after.type = 'a';
                     float child = search(after, layer);
-                    if(score < child + r) { score = child + r; }
+                    child += r;
+                    if(score < child) score = child;
                 }
             }
             //existing child-node
-            if(v == 1) { return score; }
+            if(v == 1) return score;
             //non-existing child-node
-            score = 0;
-            for(int j = 0; j < 32; j++) {
-                index = find_index(j,before,before.hint);
-                if(j < 16) { score += net[0][index]; }
-                else { score += net[1][index]; }
-            }
-            return score;
+            return -1;
         }
         //evil node
-        else if(before.type == 'a') {
+        else if(before.type == 'a'){
             float score = 0;            
             //depth = 0
-            if(k == 0) {
-                for(int j = 0; j < 32; j++){
-                    index = find_index (j,before,before.hint);
-                    if(j < 16) { score += net[0][index]; }
-                    else { score += net[1][index]; }
+            if(k == 0){
+                for(int j = 0; j < 32; ++j){
+                    index = find_index(j,before);
+                    if(j < 16) score += net[0][index];
+                    else score += net[1][index];
                 }
                 return score;
             }
             //depth != 0
-            float value[3] = {0};
-            int empty_op = 0;
-            int last = before.get_last();
-            int num_child = before.bag[0] + before.bag[1] + before.bag[2];
-            if(num_child == 0) { 
-                for(int i = 0; i < 3; ++i) { before.bag[i] = 4; }
-                num_child = 12;
+            float value[3];
+            float num_child = 0;
+            int child[3];
+            int last = before.last;            
+            int v = 0;
+            if(before.bag[0] == 0 && before.bag[1] == 0 && before.bag[2] == 0){
+                before.bag[0] = 4;
+                before.bag[1] = 4;
+                before.bag[2] = 4;
             }
-            //set op and search
-            if(last == 0) op = op_0;
-            else if(last == 1) op = op_1;
-            else if(last == 2) op = op_2;
-            else if(last == 3) op = op_3;
-            for(int pos : op) {
-                if(before(pos) != 0) continue;
-                empty_op++;// # of empty space
-                after = before;
-                after.type = 'b';
-                //hint<4 && max < 7(48); hint<4 && max >= 7(48); 
-                if(before.hint != 4) {
-                    after.place(pos,before.hint);                    
-                    for(int i = 1; i < 4; ++i) {
-                        if(before.bag[i-1] > 0) { // bag contains i
+            child[0] = before.bag[0];
+            child[1] = before.bag[1];
+            child[2] = before.bag[2];
+            if(last == 0){
+                for(int pos : op_0){
+                    if(before(pos) != 0) continue;
+                    value[0] = 0;
+                    value[1] = 0;
+                    value[2] = 0;
+                    after = before;
+                    after.type = 'b';
+                    if(before.hint != 4) after.place(pos,before.hint);
+                    else after.place(pos, 4 + (std::rand()%((before.max-3) - 4 + 1)));                 
+                    for(int i = 0; i < 3; ++i){
+                        if(before.bag[i] > 0){//bag contains i
                             after.bag = before.bag;
                             //generate new hint
-                            after.hint = i;
-                            after.bag[i-1]--;
-                            value[i-1] = search(after, layer);
-                        }
-                    }
-                    score += value[0] * before.bag[0] + value[1] * before.bag[1] + value[2] * before.bag[2];
-                }
-                //hint = 4 && max >= 7(48)
-                else {
-                    uint8_t max = before.get_board_max();
-                    for(int j = 4; j <= max-3; ++j) {
-                        after = before;
-                        after.place(pos,j);                        
-                        for(int i = 1; i < 4; ++i) {
-                            if(before.bag[i-1] > 0) { // bag contains i
-                                after.bag = before.bag;
-                                //generate new hint
-                                after.hint = i;
-                                after.bag[i-1]--;
-                                value[i-1] = search(after, layer);
+                            after.hint = i+1;
+                            --after.bag[i];
+                            float t = search(after, layer);
+                            if(t != -1){
+                                value[i] = t;
+                                v = 1;
+                                num_child += child[i];
                             }
                         }
-                        score += value[0] * before.bag[0] + value[1] * before.bag[1] + value[2] * before.bag[2];
                     }
-                    num_child = num_child * (max - 6);
+                    score += value[0] * child[0] + value[1] * child[1] + value[2] * child[2];
+                    //max >= 7(48)
+                    if(before.max == 7){
+                        after.bag = before.bag;
+                        //generate new hint
+                        after.hint = 4;
+                        float t = search(after, layer);
+                        if(t != -1){
+                            score += t*0.05;
+                            v = 1;
+                            num_child += 0.05;
+                        }
+                    }
                 }
             }
-            score /= num_child * empty_op;
-            return score;
+            else if(last == 1){
+                for(int pos : op_1){
+                    if(before(pos) != 0) continue;
+                    value[0] = 0;
+                    value[1] = 0;
+                    value[2] = 0;
+                    after = before;
+                    after.type = 'b';
+                    if(before.hint != 4) after.place(pos,before.hint);
+                    else after.place(pos, 4 + (std::rand()%((before.max-3) - 4 + 1)));                 
+                    for(int i = 0; i < 3; ++i){
+                        if(before.bag[i] > 0){//bag contains i
+                            after.bag = before.bag;
+                            //generate new hint
+                            after.hint = i+1;
+                            --after.bag[i];
+                            float t = search(after, layer);
+                            if(t != -1){
+                                value[i] = t;
+                                v = 1;
+                                num_child += child[i];
+                            }
+                        }
+                    }
+                    score += value[0] * child[0] + value[1] * child[1] + value[2] * child[2];
+                    //max >= 7(48)
+                    if(before.max == 7){
+                        after.bag = before.bag;
+                        //generate new hint
+                        after.hint = 4;
+                        float t = search(after, layer);
+                        if(t != -1){
+                            score += t*0.05;
+                            v = 1;
+                            num_child += 0.05;
+                        }
+                    }
+                }
+            }
+            else if(last == 2){
+                for(int pos : op_2){
+                    if(before(pos) != 0) continue;
+                    value[0] = 0;
+                    value[1] = 0;
+                    value[2] = 0;
+                    after = before;
+                    after.type = 'b';
+                    if(before.hint != 4) after.place(pos,before.hint);
+                    else after.place(pos, 4 + (std::rand()%((before.max-3) - 4 + 1)));                 
+                    for(int i = 0; i < 3; ++i){
+                        if(before.bag[i] > 0){//bag contains i
+                            after.bag = before.bag;
+                            //generate new hint
+                            after.hint = i+1;
+                            --after.bag[i];
+                            float t = search(after, layer);
+                            if(t != -1){
+                                value[i] = t;
+                                v = 1;
+                                num_child += child[i];
+                            }
+                        }
+                    }
+                    score += value[0] * child[0] + value[1] * child[1] + value[2] * child[2];
+                    //max >= 7(48)
+                    if(before.max == 7){
+                        after.bag = before.bag;
+                        //generate new hint
+                        after.hint = 4;
+                        float t = search(after, layer);
+                        if(t != -1){
+                            score += t*0.05;
+                            v = 1;
+                            num_child += 0.05;
+                        }
+                    }
+                }
+            }
+            else if(last == 3){
+                for(int pos : op_3){
+                    if(before(pos) != 0) continue;
+                    value[0] = 0;
+                    value[1] = 0;
+                    value[2] = 0;
+                    after = before;
+                    after.type = 'b';
+                    if(before.hint != 4) after.place(pos,before.hint);
+                    else after.place(pos, 4 + (std::rand()%((before.max-3) - 4 + 1)));                 
+                    for(int i = 0; i < 3; ++i){
+                        if(before.bag[i] > 0){//bag contains i
+                            after.bag = before.bag;
+                            //generate new hint
+                            after.hint = i+1;
+                            --after.bag[i];
+                            float t = search(after, layer);
+                            if(t != -1){
+                                value[i] = t;
+                                v = 1;
+                                num_child += child[i];
+                            }
+                        }
+                    }
+                    score += value[0] * child[0] + value[1] * child[1] + value[2] * child[2];
+                    //max >= 7(48)
+                    if(before.max == 7){
+                        after.bag = before.bag;
+                        //generate new hint
+                        after.hint = 4;
+                        float t = search(after, layer);
+                        if(t != -1){
+                            score += t*0.05;
+                            v = 1;
+                            num_child += 0.05;
+                        }
+                    }
+                }
+            }
+            if(v == 1){
+                score /= num_child;
+                return score;
+            }
+            score = 0;
+            for(int j = 0; j < 32; ++j){
+                //std::cout<<before<<before.empty<<std::endl;
+                index = find_index(j,before);                
+                if(j < 16) score += net[0][index];
+                else score += net[1][index];
+            }
+            return score;            
         }
-        std::cout<<"gg\n";
+        //std::cout<<"gg\n";
         return -1;
     }
     
     //action
-	virtual action take_action(const board &before) {
+	virtual action take_action(const board &before){
         int op, index, imdt_r;
         int valid = 0;
         float score = -999999;
@@ -377,10 +503,10 @@ public:
         temp.bag[0] = 0;
         temp.bag[1] = 0;
         temp.bag[2] = 0;
-        for(auto i = bag.begin(); i != bag.end(); ++i) {
-            if(*i == 1) temp.bag[0]++;
-            else if(*i == 2) temp.bag[1]++;
-            else if(*i == 3) temp.bag[2]++;
+        for(std::vector<int>::iterator i = bag.begin(); i != bag.end(); ++i){
+            if(*i == 1) ++temp.bag[0];
+            else if(*i == 2) ++temp.bag[1];
+            else if(*i == 3) ++temp.bag[2];
         }
         // find best action op
         /*#pragma omp parallel
@@ -403,30 +529,27 @@ public:
                 }
             }
         }*/
-        for(int i = 0; i < 4; i++) {
+        for(int i = 0; i < 4; ++i){
             board as = temp;
             int reward = as.slide(i);
             current[i] += reward;
-            if(reward != -1) {
-                if(hint == 4) { current[i] += search(as, 0); }
-                else { current[i] += search(as, 0); }//searching i layers
+            if(reward != -1){
+                if(hint == 4 && as.max > 9) current[i] += search(as, 0);
+                else current[i] += search(as, 2);//searching i layers
             }
-        }
- 
+        } 
         for(int i = 0; i < 4; ++i){
             if(current[i] != -1 && score < current[i]){
                 score = current[i];
                 op = i;
                 valid = 1;
             }
-        }        
+        }
         //action found
-        board after;
         if(valid == 1){
-            after = before;
-            imdt_r = after.slide(op);
-            for(int j = 0; j < 32; j++){
-                index = find_index(j,after,hint);
+            imdt_r = temp.slide(op);
+            for(int j = 0; j < 32; ++j){
+                index = find_index(j,temp);
                 key[j] = index;
             }
             state_key.push_back(key);
@@ -434,51 +557,86 @@ public:
             return action::slide(op);
         }
         //action not found
-        for(int j = 0; j < 32; j++){
-            index = find_index(j,before,hint);
-            key[j] = index;
-        }
-        state_key.push_back(key);
-        r.push_back(0);
         return action();
     }
     
+    //action
+	/*virtual action take_action(const board &before) {
+        int op = 0, valid = 0, index, imdt_r, reward;
+        float t = -999999, direction_value;
+        std::array<std::array<int, 32>, 4> key;
+        board as;
+        // find best action
+        for(int i = 0; i < 4; ++i){
+            direction_value = 0;
+            as = before;
+            reward = as.slide(i);//immediate reward
+            if(reward != -1){
+                valid = 1;
+                direction_value += reward;
+                for(int j = 0; j < 32; ++j){
+                    index = find_index(j,as);
+                    key[i][j] = index;
+                    if(j < 16)
+                        direction_value += net[0][index]; 
+                    else
+                        direction_value += net[1][index];
+                }
+                if(direction_value > t){
+                    t = direction_value;
+                    op = i;
+                    imdt_r = reward;
+                }
+            }
+        }
+        //not terminal
+        if(valid == 1){
+            state_key.push_back(key[op]);
+            r.push_back(imdt_r);
+            return action::slide(op);
+        }
+        //terminal
+        return action();
+    }*/
+    
     //training
-    void training() {
-        std::array<int, 32> as_key;
-        float sum = 0, v_as, amend;
+    void training(){
+        float sum = 0;
+        float v_as, amend;
+        std::vector<std::array<int, 32>>::reverse_iterator iter = state_key.rbegin();
         r.push_back(0);
-        while(!state_key.empty()){
-            as_key = state_key.back();
+        std::vector<int>::reverse_iterator rr = r.rbegin();
+        while(iter != state_key.rend()){
             v_as = sum;
             sum = 0;
-            for(int j = 0; j < 32; j++){
+            for(int j = 0; j < 32; ++j){
                 if(j<16)
-                    sum += net[0][as_key[j]];
+                    sum += net[0][(*iter)[j]];
                 else
-                    sum += net[1][as_key[j]];
+                    sum += net[1][(*iter)[j]];
             }
-            amend = alpha * (r.back() + v_as - sum);
+            amend = alpha * ((*rr) + v_as - sum);
             sum = 0;
-            for(int i = 0; i < 32; i++){
+            for(int i = 0; i < 32; ++i){
                 if(i < 16){
-                    net[0][as_key[i]] += amend;
-                    sum += net[0][as_key[i]];
+                    net[0][(*iter)[i]] += amend;
+                    sum += net[0][(*iter)[i]];
                 }
                 else{
-                    net[1][as_key[i]] += amend;
-                    sum += net[1][as_key[i]];
+                    net[1][(*iter)[i]] += amend;
+                    sum += net[1][(*iter)[i]];
                 }
             }
-            state_key.pop_back();
-            r.pop_back();
+            ++iter;
+            ++rr;
         }
-        r.pop_back();
+        r.clear();
+        state_key.clear();
+        return;
     }
-
+    
 private:
     std::vector<int> r;
-    std::array<int, 4> op;
     std::vector<std::array<int, 32>> state_key;
   const int pattern[32][6]={{ 0, 4, 8, 9,12,13},
                             { 1, 5, 9,10,13,14},
