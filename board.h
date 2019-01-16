@@ -2,10 +2,9 @@
 #include <array>
 #include <iostream>
 #include <iomanip>
-#include <vector>
 
 /**
- * array-based board for 2048
+ * array-based board for threes
  *
  * index (1-d form):
  *  (0)  (1)  (2)  (3)
@@ -14,7 +13,7 @@
  * (12) (13) (14) (15)
  *
  */
-class board {
+class board{
 public:
 	typedef uint8_t cell;
 	typedef std::array<cell, 4> row;
@@ -48,9 +47,9 @@ public:
 		if(max > 6){
             if(tile > abs(max-3)) return -1;
 		}
-    else{
-        if(tile != 1 && tile != 2 && tile != 3) return -1;
-    }
+        else{
+            if(tile != 1 && tile != 2 && tile != 3) return -1;
+        }
 		operator()(pos) = tile;
 		return 0;
 	}
@@ -60,7 +59,7 @@ public:
 	 * return the reward of the action, or -1 if the action is illegal
 	 */
 	reward slide(unsigned opcode){
-		switch (opcode & 0b11) {
+		switch (opcode & 0b11){
 		case 0: return slide_up();
 		case 1: return slide_right();
 		case 2: return slide_down();
@@ -72,23 +71,23 @@ public:
 	reward slide_left(){
 		board prev = *this;
 		reward score = 0;
-		for(int r = 0; r < 4; ++r){
+		for(int r = 0; r < 4; r++){
 			row& row = tile[r];
 			int hold = 0, blank = 0;
-			for(int c = 0; c < 4; ++c){
+			for(int c = 0; c < 4; c++){
 				int tile = row[c];
 				if(tile == 0){blank = 1;}
                 else{
                     if(hold == tile && hold > 2){
                         row[c-1] = ++tile;
                         blank = 1;
-                        score += grade[row[c-1]];//3^(row[c-1]-3) * (row[c-1] + 2);
+                        score += grade[row[c-1]];//3^(row[c-1] - 3) * (row[c-1] + 2);
                         if(row[c-1] > max) max = row[c-1];
                     }
 					else if(abs((hold - tile)) == 1 && (hold + tile) == 3){
                         row[c-1] = 3;
                         blank = 1;
-                        score += 9;
+                        score += 5;
                         if(row[c-1] > max) max = row[c-1];
                     }
                     else
@@ -102,7 +101,7 @@ public:
 			}
 		}
 		last = 3;
-		if(*this != prev) return score;
+		if(*this != prev) { return score; }
 		return -1;
 	}
 	reward slide_right(){
@@ -129,7 +128,7 @@ public:
 
 	void transpose(){
 		for(int r = 0; r < 4; ++r){
-			for(int c = r + 1; c < 4; c++){
+			for (int c = r + 1; c < 4; ++c){
 				std::swap(tile[r][c], tile[c][r]);
 			}
 		}
@@ -159,8 +158,8 @@ public:
 			out << "|" << std::dec;
 
 			for(auto t : row){
-                    int k = (t > 3) ? (1 << (t-3) & -2u)*3 : t;
-                    out << std::setw(6) << k;
+                int k = (t > 3) ? (1 << (t-3) & -2u)*3 : t;
+                out << std::setw(6) << k;
 			}
 			out << "|" << std::endl;
 		}
@@ -173,7 +172,7 @@ public:
     int hint;
    	int last = -1;
     int max = 0;
-    std::array<float,3> bag;
+    std::array<int,3> bag;
     
 private:
 	grid tile;

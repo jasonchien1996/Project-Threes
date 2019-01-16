@@ -20,7 +20,6 @@ int main(int argc, const char* argv[]){
 	std::cout << "threes-Demo: ";
 	std::copy(argv, argv + argc, std::ostream_iterator<const char*>(std::cout, " "));
 	std::cout << std::endl << std::endl;
-
 	size_t total = 1000, block = 0, limit = 0;
 	std::string play_args, evil_args;
 	std::string load, save;
@@ -45,19 +44,15 @@ int main(int argc, const char* argv[]){
 			summary = true;
 		}
 	}
-
 	statistic stat(total, block, limit);
-
 	if(load.size()){
 		std::ifstream in(load, std::ios::in);
 		in >> stat;
 		in.close();
 		summary |= stat.is_finished();
 	}
-
 	player play(play_args);
 	rndenv evil(evil_args);
-
 	while(!stat.is_finished()){
 		play.open_episode("~:" + evil.name());
 		evil.open_episode(play.name() + ":~");
@@ -66,9 +61,13 @@ int main(int argc, const char* argv[]){
 		while(true){
             agent& who = game.take_turns(play, evil);
 			action move = who.take_action(game.state());
-			if(evil.hint > 3){ play.hint = 4; }
-            else{ play.hint = evil.hint; }
-            play.bag.assign(evil.bag.begin(), evil.bag.end());
+        
+			if(evil.now > 3) play.hint = 4;
+            else play.hint = evil.now;
+            play.bag = evil.bag;
+            play.num_bonus = evil.num_bonus;
+            play.total = evil.total;
+            
 			if(game.apply_action(move) != true) break;
 			if(who.check_for_win(game.state())) break;
 		}
